@@ -17,10 +17,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Debug runner + Docker versions
+        run: |
+          uname -a || true
+          docker --version || true
+          docker buildx version || true
+
+      - name: Install Docker Compose plugin
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+          docker compose version
+
       - name: Build and start compose stack
-        uses: docker/compose-action@v2
-        with:
-          args: up -d --build
+        run: |
+          docker compose up -d --build
+          sleep 10
 
       - name: Install Node.js
         uses: actions/setup-node@v4
