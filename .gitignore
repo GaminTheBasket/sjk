@@ -1,0 +1,7 @@
+node_modules
+.env
+compose-config.txt
+actionrun.html
+newman/
+reports/*.json
+reports/*.html
