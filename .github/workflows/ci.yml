@@ -67,11 +67,17 @@ jobs:
 
       - name: Run Newman tests
         run: |
+          set -e
           npm ci
           npx -y newman@latest run postman/collections/FIT4110_lab05_iot_compose.postman_collection.json --environment postman/environments/FIT4110_lab05_local.postman_environment.json --reporters cli,json --reporter-json-export reports/newman-ci.json
+          echo "Newman exit status: $?"
 
       - name: Tear down Compose
         if: always()
         run: |
+          echo "workspace files before teardown:" && ls -la
+          if [ ! -f .env ]; then
+            echo "creating .env for teardown" > .env
+          fi
           # ignore errors during teardown to avoid failing the job when compose artifacts are missing
           docker compose down -v || true
