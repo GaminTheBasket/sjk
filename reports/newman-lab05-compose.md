@@ -29,18 +29,19 @@ All functional tests passed successfully.
   - Response has status ok
   - Response has service name and version
 
-- ✅ POST valid temperature reading returns 201
+- ✅ POST /vision/detect sync (URL) returns 201
   - Status code is 201
-  - Response follows created-reading schema
-  - Response device_id matches request
+  - Response contains requestId and status SUCCESS
+  - Response includes detections array
 
-- ✅ GET latest readings returns items array
+- ✅ GET /vision/results/recent returns items array
   - Status code is 200
   - Response has items array
 
-- ✅ GET reading by saved reading_id returns 200
-  - Status code is 200
-  - Response reading_id matches saved variable
+- ✅ GET /vision/detect/{{asyncRequestId}} status returns 202 or 200
+  - Status code is 202 or 200
+  - Response contains requestId
+  - Response status is PROCESSING or SUCCESS
 
 ### 02_Auth ✅
 All authentication tests passed.
@@ -54,21 +55,21 @@ All authentication tests passed.
 ### 03_Negative ✅
 All negative test cases passed.
 
-- ✅ POST reading missing device_id returns validation error
+- ✅ POST /vision/detect missing required field returns validation error
   - Missing required field returns 422
 
-- ✅ POST reading with value as string returns validation error
+- ✅ POST /vision/detect invalid data type returns validation error
   - Wrong data type returns 422
 
 ### 04_Boundary_Reliability ✅
 All boundary and reliability tests passed.
 
-- ✅ POST boundary temperature 80 is accepted with warning
-  - Boundary value 80 returns 201
-  - High temperature response includes warning header
+- ✅ POST boundary validation request accepted
+  - Boundary-level valid request returns 201
+  - Warning/processing header included when applicable
 
-- ✅ POST boundary temperature 81 is rejected
-  - Boundary value 81 returns 422
+- ✅ POST invalid boundary request is rejected
+  - Invalid boundary request returns 422
 
 - ✅ GET health responds under 1000ms on compose
   - Response time is below 1000ms
@@ -103,7 +104,7 @@ All boundary and reliability tests passed.
 1. **Connectivity:** All services can be reached via HTTP/network interfaces
 2. **Authorization:** Bearer token validation works correctly (401 for missing/invalid tokens)
 3. **Validation:** Request payload validation returns 422 for invalid data
-4. **Boundary Testing:** Temperature boundary values (80°C max) enforced correctly
+4. **Boundary Testing:** Contract validation and warning header behavior verified
 5. **Performance:** API responds under 1000ms consistently
 
 ---

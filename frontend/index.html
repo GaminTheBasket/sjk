@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus Admin Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Smart Campus Admin Dashboard</h1>
+      <p>Giám sát dịch vụ và thống kê dữ liệu KPI.</p>
+    </div>
+    <div class="toolbar">
+      <button id="refresh-button">Làm mới</button>
+      <div id="updated-at">Đang tải...</div>
+    </div>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="services-title">
+      <h2 id="services-title">Trạng thái dịch vụ</h2>
+      <div id="service-grid" class="grid"></div>
+    </section>
+    <section class="panel" aria-labelledby="summary-title">
+      <h2 id="summary-title">Tóm tắt KPI</h2>
+      <div id="metrics-summary" class="summary"></div>
+    </section>
+    <section class="panel" aria-labelledby="detail-title">
+      <h2 id="detail-title">Chi tiết metrics</h2>
+      <div id="metrics-details"></div>
+    </section>
+    <section class="panel" aria-labelledby="logs-title">
+      <h2 id="logs-title">Dữ liệu collection access logs</h2>
+      <div id="log-summary" class="summary"></div>
+      <div id="log-list" class="table-wrapper"></div>
+    </section>
+  </main>
+  <footer>
+    <p>Dashboard đơn giản cho admin. Dữ liệu lấy từ Core Business và Analytics.</p>
+  </footer>
+  <script src="dashboard.js"></script>
+</body>
+</html>

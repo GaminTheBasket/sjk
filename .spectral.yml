@@ -1,0 +1,4 @@
+extends: spectral:oas
+
+# Minimal custom ruleset for OpenAPI validation in this repo.
+# The installed Spectral version accepts the built-in OAS ruleset only.

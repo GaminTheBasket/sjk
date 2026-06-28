@@ -1,4 +1,4 @@
-# Lab 05 – Docker Compose Readiness Submission Report
+copy .env.example .env# Lab 05 – Docker Compose Readiness Submission Report
 
 **Date:** 2026-06-16  
 **Student:** HDuong  
@@ -8,12 +8,12 @@
 
 ## Project Overview
 
-This lab demonstrates a production-ready Docker Compose orchestration of a multi-service IoT ingestion system with:
+This lab demonstrates a production-ready Docker Compose orchestration of a multi-service AI Vision / Access / Core Policy API with:
 
-- **API Service** (FastAPI): IoT sensor reading ingestion, authentication, CRUD operations
-- **AI Service** (Mock): Predictive analytics mock endpoint
-- **Database** (PostgreSQL): Persistent storage for sensor readings
-- **Test Suite** (Newman/Postman): End-to-end integration tests
+- **API Service** (FastAPI): AI Vision, Access Gate, and Policy Engine contract mock implementation
+- **AI Service** (Mock): Support service with health check for Docker Compose readiness
+- **Database** (PostgreSQL): Optional persistence support for multi-service stack
+- **Test Suite** (Newman/Postman): OpenAPI contract verification tests
 
 ---
 
@@ -66,9 +66,9 @@ Average Response Time: 11ms
 
 #### 01_Functional (4/4 tests passing) ✅
 - GET /health → 200 OK
-- POST /readings (valid) → 201 Created
-- GET /readings/latest → 200 OK with items array
-- GET /readings/{id} → 200 OK
+- POST /vision/detect (valid) → 201 Created
+- GET /vision/results/recent → 200 OK with items array
+- POST /access/check → 200 OK
 
 #### 02_Auth (2/2 tests passing) ✅
 - POST without token → 401 Unauthorized ✅ (FIXED)
@@ -79,8 +79,8 @@ Average Response Time: 11ms
 - POST invalid value type → 422 Unprocessable Entity
 
 #### 04_Boundary_Reliability (3/3 tests passing) ✅
-- Temperature 80°C (boundary) → 201 Created with warning header
-- Temperature 81°C (over limit) → 422 Unprocessable Entity
+- Boundary-level validation request accepted → 201 Created
+- Invalid boundary condition rejected → 422 Unprocessable Entity
 - Health endpoint response time < 1000ms → 200 OK
 
 ---
@@ -115,8 +115,8 @@ API Service (port 8000) accessible via class-net
 APP_HOST=0.0.0.0
 APP_PORT=8000
 AUTH_TOKEN=local-dev-token (dev-only, safe)
-SERVICE_NAME=iot-ingestion
-SERVICE_VERSION=0.5.0
+SERVICE_NAME=ai-vision-service
+SERVICE_VERSION=1.0.0
 POSTGRES_USER=lab05
 POSTGRES_PASSWORD=lab05pass
 POSTGRES_DB=iotdb
@@ -191,11 +191,8 @@ POSTGRES_DB=iotdb
 
 ## Pending Tasks (Not Blocking Submission)
 
-- [x] Tag images with v0.1.0-team-iot versioning and push to Docker Hub
-  - ✅ `hduonggg/lab05-api:v0.1.0-team-iot` pushed (digest: sha256:2d935f2e483ba6d0e7280713e7809191ea67390e5b049fef97f40a06d9208c7c)
-  - ✅ `hduonggg/lab05-ai:v0.1.0-team-iot` pushed (digest: sha256:d4e414f646adc2e455860d4517a79888f337f60729dfbce93103acda0b65ce71)
-  - **Status:** Images pushed successfully to Docker Hub under the `hduonggg` namespace and are available in the registry.
-  - **Note:** Local `hduong/*` tags remain; canonical remote tags use `hduonggg/` namespace used during push.
+- [ ] Publish service images to a container registry and update the repository README with final image tags.
+- [ ] Confirm the `class-net` external Docker network is available in the target deployment environment.
 
 ---
 

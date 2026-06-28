@@ -59,6 +59,73 @@ services:
       retries: 3
       start_period: 15s
 
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0.17
+    container_name: fit4110-mqtt-broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - team-internal
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -n -z 127.0.0.1 1883"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile.analytics
+    container_name: fit4110-analytics-lab05
+    env_file:
+      - .env
+    depends_on:
+      mqtt-broker:
+        condition: service_healthy
+      core-business:
+        condition: service_started
+    networks:
+      - team-internal
+    ports:
+      - "8010:8010"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  core-business:
+    build:
+      context: .
+      dockerfile: Dockerfile.core
+    container_name: fit4110-core-business-lab05
+    networks:
+      - team-internal
+    ports:
+      - "8020:8020"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: fit4110-dashboard-lab05
+    ports:
+      - "8080:80"
+    networks:
+      - team-internal
+    depends_on:
+      - core-business
+
 networks:
   team-internal:
     driver: bridge

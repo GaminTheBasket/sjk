@@ -19,6 +19,12 @@ cd FIT4110_lab05_docker_compose_readiness
 npm install
 ```
 
+## 2.1. Kiểm tra contract OpenAPI
+
+```bash
+npm run lint:openapi
+```
+
 ---
 
 ## 3. Build & chạy stack Docker Compose
@@ -36,6 +42,9 @@ Lệnh trên sẽ tạo các container:
 - `fit4110-db-lab05` (PostgreSQL)
 - `fit4110-ai-lab05` (AI service mẫu chạy port 9000)
 - `fit4110-api-lab05` (API FastAPI trên port 8000)
+- `fit4110-mqtt-broker` (MQTT broker cho event bus)
+- `fit4110-analytics-lab05` (Analytics Service chạy port 8010)
+- `fit4110-core-business-lab05` (Core Business trung tâm chạy port 8020)
 
 Theo dõi log:
 
@@ -52,16 +61,33 @@ curl http://localhost:8000/health
 # AI service
 curl http://localhost:9000/health
 
+# Analytics service
+curl http://localhost:8010/health
+curl http://localhost:8010/metrics/daily
+
+# Core Business service
+curl http://localhost:8020/health
+curl http://localhost:8020/analytics/metrics/latest
+
 # DB readiness
 docker exec -it fit4110-db-lab05 pg_isready -U $POSTGRES_USER
 ```
 
-Bạn cũng có thể truy cập endpoint `/predict` của AI service để xem kết quả mẫu:
+Bạn cũng có thể truy cập endpoint `/vision/detect` trên API để kiểm thử contract OpenAPI, hoặc `/vision/models` để kiểm tra danh sách model giả lập. Một ví dụ khác cho endpoint Core Policy là `/access/check`.
 
 ```bash
-curl -X POST http://localhost:9000/predict
+curl -X POST http://localhost:8000/vision/detect \
+  -H 'Authorization: Bearer local-dev-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"requestId":"0196fb3d-4ad7-7d1e-9f49-5d5148d2babc","cameraId":"CAM-001","capturedAt":"2026-05-28T15:00:00Z","imageType":"URL","imageUrl":"https://campus.local/images/cam-001/frame-123.jpg","locationId":"GATE-01"}'
 ```
 
+```bash
+curl -X POST http://localhost:8000/access/check \
+  -H 'Authorization: Bearer local-dev-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"requestId":"0196fb3d-4ad7-7d1e-9f49-5d5148d2cafe","cardId":"CARD-123456","gateId":"GATE-01","direction":"IN","timestamp":"2026-06-01T10:00:00Z"}'
+```
 ---
 
 ## 4. Chạy Newman test trên stack Compose (tuỳ chọn)

@@ -1,0 +1,198 @@
+{
+  "items": [
+    {
+      "logId": "access-event-3eb49e172491",
+      "cardId": "CARD-000001",
+      "gateId": "lab-a101",
+      "direction": "out",
+      "timestamp": "2026-06-23T16:02:58Z",
+      "status": "ALLOWED",
+      "note": "granted",
+      "student_id": "SV001",
+      "full_name": "Nguyen Van An",
+      "source_service": "team-gate",
+      "raw_event_id": "raw-rfid-50cf5f86f4"
+    },
+    {
+      "logId": "26d0f490-df51-41dd-ae3d-fb41422e4e7f",
+      "cardId": "CARD-SV002",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:56:58Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "19820dfe-341b-4a2c-bcea-ee421a3de4e8",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "lab-a101",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:56:48Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "4a62f867-6c4c-40f9-993c-49f12539dfa7",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:56:38Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "0d0186f0-5eb0-4907-9926-83d048fe0f8b",
+      "cardId": "CARD-SV008",
+      "gateId": "gate-a",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:56:28Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "0e2e588b-d79d-4a22-b60e-32e059b4e646",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:56:18Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "0fbbe976-7607-4b78-ac87-98402d388d11",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:56:07Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "813ed8e2-0933-4b8c-9feb-5870314dbdd8",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "lab-a101",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:55:57Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "1ab724d5-2b46-424f-8ae2-a95eae41abd2",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:55:47Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "61e176a3-19f0-4a50-867b-ab3b775d239a",
+      "cardId": "CARD-SV001",
+      "gateId": "lab-a101",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:55:37Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "e7960800-55de-4c8e-9d3b-23dc2556febc",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "lab-a101",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:55:27Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "bdd61a8d-1273-4903-80ec-a3b50fb6fd2f",
+      "cardId": "CARD-UNKNOWN",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:55:16Z",
+      "status": "DENIED",
+      "note": "whitelist_not_found"
+    },
+    {
+      "logId": "a79751eb-174e-46b6-9cd1-745dc798344c",
+      "cardId": "CARD-SV010",
+      "gateId": "gate-a",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:55:06Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "ac4c2f5c-db90-4596-8b26-d7feb9414164",
+      "cardId": "CARD-SV009",
+      "gateId": "gate-a",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:54:56Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "82f489da-473a-4c3e-ac5e-ee31f51b4775",
+      "cardId": "CARD-SV007",
+      "gateId": "lab-a101",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:54:45Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "9ac77cf2-4030-4212-a72a-2c395e1e30b0",
+      "cardId": "CARD-SV007",
+      "gateId": "lab-a101",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:54:35Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "0d99c59e-dae8-40d3-9c3a-d65738a2cb1f",
+      "cardId": "CARD-SV005",
+      "gateId": "lab-a101",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:54:25Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "6ad5eb46-3f7f-4f6e-aaf8-375c61005ea7",
+      "cardId": "CARD-SV008",
+      "gateId": "lab-a101",
+      "direction": "out",
+      "timestamp": "2026-06-17T09:54:15Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "8d4453fe-9c12-4e2b-8407-ce52b869ae25",
+      "cardId": "CARD-SV008",
+      "gateId": "lab-a101",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:54:05Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "c3f3c2b7-087a-44a6-9a7a-cb36aa0c79e6",
+      "cardId": "CARD-SV005",
+      "gateId": "gate-a",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:53:54Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    },
+    {
+      "logId": "4accb061-b73e-443a-89fe-f4d94717f4c9",
+      "cardId": "CARD-SV004",
+      "gateId": "lab-a101",
+      "direction": "in",
+      "timestamp": "2026-06-17T09:53:44Z",
+      "status": "ALLOWED",
+      "note": "whitelist_match"
+    }
+  ],
+  "count": 20
+}

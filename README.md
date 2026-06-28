@@ -3,16 +3,16 @@
 **Học phần:** FIT4110 – Dịch vụ kết nối và Công nghệ nền tảng  
 **Buổi 5:** Điều phối đa dịch vụ với Docker Compose, readiness & AI service  
 **Case study:** Smart Campus Operations Platform  
-**Repo nền:** `FIT4110_lab04_docker_packaging`
+**Contract:** `openapi.yaml` định nghĩa AI Vision, Access Gate và Core Policy API
 
-> Lab 04 đã chứng minh rằng một API chạy trên máy cá nhân có thể được đóng gói thành container và kiểm thử lại bằng Postman/Newman.  
-> Lab 05 mở rộng tư duy đó: thay vì một container đơn lẻ, chúng ta phải phối hợp **nhiều** dịch vụ thông qua Docker Compose. Đây là bước đệm trực tiếp để tham gia plug‑a‑thon – nơi mọi nhóm gắn kết dịch vụ của mình vào một hệ sinh thái chung.
-
+> Trước đây repo từng dùng một ví dụ service đơn lẻ. Lab 05 mở rộng sang một Docker Compose stack nhiều service để mô phỏng luồng AI Vision, Access Gate và Core Policy cùng nhau.  
+> 
+> API contract chính của project nằm trong file `openapi.yaml` ở gốc repo. File này định nghĩa các endpoint `health`, `vision`, `access`, `core-policy`, và các schema liên quan.
 ---
 
-## 1. Ý tưởng nối tiếp từ Lab 04 sang Lab 05
+## 1. Từ ví dụ service đơn lẻ sang Lab 05
 
-Trong Lab 04, luồng làm việc tập trung vào việc kiểm thử một service được đóng gói trong Docker:
+Trước đây repository từng minh hoạ một service đơn lẻ được đóng gói và kiểm thử bằng Docker. Lab 05 mở rộng sang một Docker Compose stack nhiều service để mô phỏng luồng AI Vision, Access Gate và Core Policy phối hợp cùng nhau.
 
 ```text
 OpenAPI Contract → Service → Dockerfile → Docker image → Docker container → Newman report
@@ -45,13 +45,13 @@ Sau khi hoàn thành Lab 05, mỗi nhóm cần làm được:
 
 - Viết `docker-compose.yml` để định nghĩa ít nhất ba service: API, AI (hoặc worker) và database.
 - Dùng network `team-internal` để giao tiếp nội bộ và tham gia mạng chung `class-net` khi cần thiết.
-- Chạy API bằng non‑root user trong container và giữ nguyên `HEALTHCHECK` như Lab 04.
+- Chạy API bằng non‑root user trong container và cấu hình `HEALTHCHECK` để Compose biết khi service sẵn sàng.
 - Thêm healthcheck cho DB (`pg_isready`) và AI service để Compose biết khi nào container sẵn sàng.
 - Tách cấu hình runtime qua `.env.example` (ví dụ `APP_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `SERVICE_VERSION`, `AUTH_TOKEN`).
 - Không commit secret thật vào repo.
 - Triển khai `Makefile` hoặc script để nhanh chóng chạy Compose (`make compose-up`, `make compose-down`).
 - Viết `RUN_COMPOSE.md` hướng dẫn người khác clone và chạy lại toàn bộ stack.
-- Chạy lại Postman/Newman để kiểm thử API trong môi trường Compose (có thể tái sử dụng collection và environment của Lab 04).
+- Chạy lại Postman/Newman để kiểm thử API trong môi trường Compose bằng collection và environment hiện có trong repo.
 - Soạn **checklists/readiness-checklist.md** mô tả checklist readiness 6 điểm (sẵn sàng DB, AI, token, port, network, version) và tick khi hoàn thành.
 - Cung cấp bằng chứng (screenshot/ảnh, báo cáo test) trong thư mục `reports/`.
 
@@ -77,6 +77,7 @@ FIT4110_lab05_docker_compose_readiness/
 │       └── main.py
 ├── contracts/
 │   └── iot-ingestion.openapi.yaml
+├── openapi.yaml
 ├── postman/
 │   └── environments/
 │       └── FIT4110_lab05_local.postman_environment.json
@@ -85,7 +86,7 @@ FIT4110_lab05_docker_compose_readiness/
 └── reports/
 ```
 
-Thư mục `src/iot_app` chứa API FastAPI giống Lab 04. Thư mục `src/ai_service` chứa service AI mẫu (giả lập), cung cấp một endpoint `/predict` trả về kết quả dummy. Nhóm có thể thay bằng mô hình thực tế (YOLOv8, MediaPipe…).
+Thư mục `src/iot_app` chứa API FastAPI đã được chỉnh lại để phù hợp với OpenAPI contract `openapi.yaml` (AI Vision / Access / Core Policy). Thư mục `src/ai_service` giữ service AI mẫu (giả lập) với endpoint `/health`, phục vụ health check và mô phỏng môi trường Docker Compose. File `contracts/iot-ingestion.openapi.yaml` là hợp đồng tham khảo từ bài lab trước và không phải contract hoạt động chính của repo hiện tại.
 
 ---
 
@@ -118,7 +119,7 @@ npx prism --version
 
 ## 5. Chạy API local không dùng Docker
 
-Các bước giống Lab 04:
+Các bước cài đặt local tương tự:
 
 ```bash
 python -m venv .venv
@@ -137,7 +138,7 @@ curl http://localhost:8000/health
 
 ## 6. Điều phối đa dịch vụ với Docker Compose
 
-File `docker-compose.yml` định nghĩa 3 service: `api`, `db` và `ai-service`. Các biến môi trường được đặt trong `.env.example` và các volume/network được khai báo rõ ràng.
+File `docker-compose.yml` định nghĩa nhiều service: `api`, `db`, `ai-service`, `mqtt-broker`, `analytics` và `core-business`. Các biến môi trường được đặt trong `.env.example` và các volume/network được khai báo rõ ràng.
 
 Chạy compose (build & run):
 
@@ -156,8 +157,10 @@ Kiểm tra readiness của từng service:
 - API: `curl http://localhost:8000/health`
 - DB: `docker exec -it fit4110-db-lab05 pg_isready -U $POSTGRES_USER`
 - AI: `curl http://localhost:9000/health` (service mẫu trả về JSON đơn giản)
+- Analytics: `curl http://localhost:8010/health`
+- Core Business: `curl http://localhost:8020/health`
 
-Sau khi stack đã sẵn sàng, chạy lại Postman collection giống Lab 04 (sửa `baseUrl` thành `http://localhost:8000`).
+Sau khi stack đã sẵn sàng, chạy lại Postman collection của AI Vision / Core Policy contract với `baseUrl=http://localhost:8000`.
 
 Dừng toàn bộ stack:
 
@@ -173,10 +176,10 @@ Phần này ghi lại checklist readiness cần kiểm tra trước khi tuyên b
 
 - DB đã khởi động và sẵn sàng (`pg_isready`).
 - AI service đã tải mô hình (nếu có) và có health check trả 200.
-- API có thể kết nối DB và AI (ví dụ tạo một reading thành công).
+- API có thể kết nối DB và AI (ví dụ gọi endpoint contract thành công).
 - Các biến môi trường (.env) được đặt đúng, không dùng secret thật.
 - `team-internal` network hoạt động; service có thể gọi nội bộ qua tên container.
-- Version/tag của từng image được cập nhật đúng quy ước (vd: `v0.1.0-team-iot`).
+- Version/tag của từng image được cập nhật đúng quy ước (vd: `v0.1.0-<team>`).
 
 ---
 
@@ -197,17 +200,16 @@ Bạn có thể mở Makefile để chỉnh sửa thêm các mục.
 
 ## 9. Bài làm của từng nhóm
 
-Mỗi nhóm dùng repo này làm mẫu và thay thế service trong `src/` bằng service của mình.
+Mỗi nhóm có thể dùng repo này làm mẫu và thay thế `src/` bằng dịch vụ của mình, đồng thời cập nhật contract, tên image và biến môi trường phù hợp.
 
 | Nhóm         | Cần thay đổi |
 |--------------|-------------|
-| `team-iot`   | Có thể sử dụng API IoT mẫu, thêm DB TimescaleDB nếu muốn. |
-| `team-camera`| Thay `src/ai_service` bằng service Camera Stream & AI inference, cập nhật port và health. |
-| `team-gate`  | Kết nối API với Access Gate service, lưu ý biến môi trường DB cho cổng, bỏ AI nếu không cần. |
-| `team-vision`| Thay `ai_service` bằng mô hình YOLOv8/MediaPipe; đảm bảo container đủ dependency CUDA khi cần. |
-| `team-analytics`| Thay DB bằng TimescaleDB, service analytics sẽ đọc dữ liệu và trả về thống kê. |
-| `team-core`  | Thay API thành policy engine; có thể bỏ AI/DB nếu không dùng. |
-| `team-notify`| Thay API thành Notification service, thêm RabbitMQ hoặc gửi email/SMS; không commit token thật. |
+| `team-camera`| Thay `src/ai_service` thành service Camera Stream & AI inference, cập nhật port và health check. |
+| `team-gate`  | Kết nối API với Access Gate service, thêm endpoint log/check state, cập nhật biến môi trường. |
+| `team-vision`| Thay `ai_service` bằng model inference thực tế; đảm bảo image đủ dependency. |
+| `team-analytics`| Dùng TimescaleDB hoặc DB analytics để truy vấn và trả về thống kê. Cung cấp REST KPI từ MQTT event để dashboard vẽ báo cáo. |
+| `team-core`  | Triển khai policy engine, hỗ trợ kiểm tra quyền truy cập và phản hồi policy. |
+| `team-notify`| Thêm service notification, gửi alert qua email/SMS, không commit token thật. |
 
 ---
 

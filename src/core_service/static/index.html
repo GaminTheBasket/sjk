@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus Admin Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Smart Campus Admin Dashboard</h1>
+      <p>Giám sát dịch vụ và thống kê dữ liệu KPI.</p>
+      <p class="note">Metrics được lấy từ Core Business; dữ liệu gốc được thu thập từ IoT broker.</p>
+    </div>
+    <div class="toolbar">
+      <button id="refresh-button">Làm mới</button>
+      <div id="updated-at">Đang tải...</div>
+    </div>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="services-title">
+      <h2 id="services-title">Trạng thái dịch vụ</h2>
+      <div id="service-grid" class="grid"></div>
+    </section>
+    <section class="panel" aria-labelledby="summary-title">
+      <h2 id="summary-title">Tóm tắt KPI</h2>
+      <div id="metrics-summary" class="summary"></div>
+    </section>
+    <section class="panel" aria-labelledby="source-title">
+      <h2 id="source-title">Nguồn dữ liệu metrics</h2>
+      <div id="data-source" class="summary"></div>
+    </section>
+    <section class="panel" aria-labelledby="detail-title">
+      <h2 id="detail-title">Chi tiết metrics</h2>
+      <div id="metrics-details"></div>
+    </section>
+    <section class="panel" aria-labelledby="activity-title">
+      <h2 id="activity-title">Hoạt động truy cập gần đây</h2>
+      <div id="activity-summary" class="summary"></div>
+      <div id="activity-list" class="table-wrapper"></div>
+      <div id="activity-pager" class="pager" aria-label="pagination"></div>
+    </section>
+  </main>
+  <footer>
+    <p>Dashboard đơn giản cho admin. Dữ liệu lấy từ Core Business và Analytics.</p>
+  </footer>
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

@@ -1,15 +1,15 @@
 {
   "info": {
-    "name": "FIT4110 Lab05 IoT Docker Compose Verification",
-    "description": "Postman collection aligned with Lab 04 contract to verify the Dockerized IoT service stack in Lab 05 with Docker Compose.",
+    "name": "FIT4110 Lab05 AI Vision & Core Policy Contract Verification",
+    "description": "Postman collection to verify the OpenAPI AI Vision / Access / Core Policy contract implemented by the API service.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "01_Functional",
+      "name": "01_System",
       "item": [
         {
-          "name": "GET health returns 200",
+          "name": "GET /health returns 200",
           "request": {
             "method": "GET",
             "header": [],
@@ -30,15 +30,20 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response has status ok', function () { const json = pm.response.json(); pm.expect(json.status).to.eql('ok'); });",
-                  "pm.test('Response has service name and version', function () { const json = pm.response.json(); pm.expect(json).to.have.property('service'); pm.expect(json).to.have.property('version'); });"
+                  "const json = pm.response.json();",
+                  "pm.test('Response provides service name and time', function () { pm.expect(json.service).to.eql('ai-vision-service'); pm.expect(json).to.have.property('time'); });"
                 ]
               }
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "name": "02_Vision",
+      "item": [
         {
-          "name": "POST valid temperature reading returns 201",
+          "name": "POST /vision/detect sync (URL)",
           "request": {
             "method": "POST",
             "header": [
@@ -52,17 +57,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/readings",
+              "raw": "{{baseUrl}}/vision/detect",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "readings"
+                "vision",
+                "detect"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
+              "raw": "{\n  \"requestId\": \"0196fb3d-4ad7-7d1e-9f49-5d5148d2babc\",\n  \"cameraId\": \"CAM-001\",\n  \"capturedAt\": \"2026-05-28T15:00:00Z\",\n  \"imageType\": \"URL\",\n  \"imageUrl\": \"https://campus.local/images/cam-001/frame-123.jpg\",\n  \"locationId\": \"GATE-01\"\n}"
             }
           },
           "event": [
@@ -72,17 +78,61 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
-                  "pm.test('Response follows created-reading schema', function () { const json = pm.response.json(); pm.expect(json).to.have.property('reading_id'); pm.expect(json.reading_id).to.match(/^R-[0-9]{8}-[0-9]{4}$/); pm.expect(json).to.have.property('accepted', true); pm.expect(json.metric).to.eql('temperature'); });",
-                  "pm.test('Response device_id matches request', function () { const json = pm.response.json(); pm.expect(json.device_id).to.eql('ESP32-LAB-A01'); });",
-                  "const created = pm.response.json();",
-                  "if (created.reading_id) { pm.environment.set('createdReadingId', created.reading_id); }"
+                  "const json = pm.response.json();",
+                  "pm.test('Response contains requestId and status SUCCESS', function () { pm.expect(json.requestId).to.exist; pm.expect(json.status).to.eql('SUCCESS'); });",
+                  "pm.test('Response includes detections array', function () { pm.expect(json.detections).to.be.an('array'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "GET latest readings returns items array",
+          "name": "POST /vision/detect async (BASE64)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vision/detect",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vision",
+                "detect"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"0196fb3d-4ad7-7d1e-9f49-5d5148d2babd\",\n  \"cameraId\": \"CAM-002\",\n  \"capturedAt\": \"2026-05-28T15:01:00Z\",\n  \"imageType\": \"BASE64\",\n  \"imageBase64\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA\",\n  \"locationId\": \"BLOCK-A\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () { pm.response.to.have.status(202); });",
+                  "pm.test('Location header is present', function () { pm.expect(pm.response.headers.has('Location')).to.be.true; });",
+                  "const json = pm.response.json();",
+                  "pm.test('Response status is PROCESSING', function () { pm.expect(json.status).to.eql('PROCESSING'); });",
+                  "if (json.requestId) { pm.environment.set('asyncRequestId', json.requestId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /vision/detect/{{asyncRequestId}} status",
           "request": {
             "method": "GET",
             "header": [
@@ -92,22 +142,56 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/readings/latest?device_id=ESP32-LAB-A01&limit=5",
+              "raw": "{{baseUrl}}/vision/detect/{{asyncRequestId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "readings",
-                "latest"
+                "vision",
+                "detect",
+                "{{asyncRequestId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202 or 200', function () { pm.expect(pm.response.code).to.be.oneOf([200, 202]); });",
+                  "const json = pm.response.json();",
+                  "pm.test('Response contains requestId', function () { pm.expect(json.requestId).to.eql(pm.environment.get('asyncRequestId')); });",
+                  "pm.test('Response status is PROCESSING or SUCCESS', function () { pm.expect(json.status).to.be.oneOf(['PROCESSING', 'SUCCESS']); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /vision/results/recent",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vision/results/recent?limit=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vision",
+                "results",
+                "recent"
               ],
               "query": [
                 {
-                  "key": "device_id",
-                  "value": "ESP32-LAB-A01"
-                },
-                {
                   "key": "limit",
-                  "value": "5"
+                  "value": "3"
                 }
               ]
             }
@@ -119,14 +203,16 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response has items array', function () { const json = pm.response.json(); pm.expect(json).to.have.property('items'); pm.expect(json.items).to.be.an('array'); });"
+                  "const json = pm.response.json();",
+                  "pm.expect(json.items).to.be.an('array');",
+                  "pm.expect(json).to.have.property('hasMore');"
                 ]
               }
             }
           ]
         },
         {
-          "name": "GET reading by saved reading_id returns 200",
+          "name": "GET /vision/detections",
           "request": {
             "method": "GET",
             "header": [
@@ -136,13 +222,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/readings/{{createdReadingId}}",
+              "raw": "{{baseUrl}}/vision/detections?limit=3",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "readings",
-                "{{createdReadingId}}"
+                "vision",
+                "detections"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
               ]
             }
           },
@@ -153,321 +245,31 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response reading_id matches saved variable', function () { const json = pm.response.json(); const saved = pm.environment.get('createdReadingId'); pm.expect(json.reading_id).to.eql(saved); });"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "02_Auth",
-      "item": [
-        {
-          "name": "POST reading without token returns 401",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/readings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "readings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Missing token returns 401', function () { pm.response.to.have.status(401); });",
-                  "function assertProblemDetails() {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('type');",
-                  "  pm.expect(json).to.have.property('title');",
-                  "  pm.expect(json).to.have.property('status');",
-                  "  pm.expect(json.status).to.be.within(400, 599);",
-                  "  pm.expect(json).to.have.property('detail');",
-                  "}",
-                  "assertProblemDetails();"
+                  "const json = pm.response.json();",
+                  "pm.expect(json.items).to.be.an('array');"
                 ]
               }
             }
           ]
         },
         {
-          "name": "POST reading with wrong token returns 401",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer wrong-token"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/readings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "readings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Wrong token returns 401', function () { pm.response.to.have.status(401); });",
-                  "function assertProblemDetails() {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('type');",
-                  "  pm.expect(json).to.have.property('title');",
-                  "  pm.expect(json).to.have.property('status');",
-                  "  pm.expect(json.status).to.be.within(400, 599);",
-                  "  pm.expect(json).to.have.property('detail');",
-                  "}",
-                  "assertProblemDetails();"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "03_Negative",
-      "item": [
-        {
-          "name": "POST reading missing device_id returns validation error",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{authToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/readings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "readings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Missing required field returns 422', function () { pm.response.to.have.status(422); });",
-                  "function assertProblemDetails() {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('type');",
-                  "  pm.expect(json).to.have.property('title');",
-                  "  pm.expect(json).to.have.property('status');",
-                  "  pm.expect(json.status).to.be.within(400, 599);",
-                  "  pm.expect(json).to.have.property('detail');",
-                  "}",
-                  "assertProblemDetails();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "POST reading with value as string returns validation error",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{authToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/readings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "readings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": \"hot\",\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Wrong data type returns 422', function () { pm.response.to.have.status(422); });",
-                  "function assertProblemDetails() {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('type');",
-                  "  pm.expect(json).to.have.property('title');",
-                  "  pm.expect(json).to.have.property('status');",
-                  "  pm.expect(json.status).to.be.within(400, 599);",
-                  "  pm.expect(json).to.have.property('detail');",
-                  "}",
-                  "assertProblemDetails();"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "04_Boundary_Reliability",
-      "item": [
-        {
-          "name": "POST boundary temperature 80 is accepted with warning",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{authToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/readings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "readings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 80,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Boundary value 80 returns 201', function () { pm.response.to.have.status(201); });",
-                  "pm.test('High temperature response includes warning header', function () { pm.expect(pm.response.headers.has('X-Warning')).to.eql(true); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "POST boundary temperature 81 is rejected",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{authToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/readings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "readings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 81,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-05-13T08:30:00+07:00\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Boundary value 81 returns 422', function () { pm.response.to.have.status(422); });",
-                  "function assertProblemDetails() {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('type');",
-                  "  pm.expect(json).to.have.property('title');",
-                  "  pm.expect(json).to.have.property('status');",
-                  "  pm.expect(json.status).to.be.within(400, 599);",
-                  "  pm.expect(json).to.have.property('detail');",
-                  "}",
-                  "assertProblemDetails();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET health responds under 1000ms on compose",
+          "name": "GET /vision/models",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/health",
+              "raw": "{{baseUrl}}/vision/models",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "vision",
+                "models"
               ]
             }
           },
@@ -477,8 +279,315 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Response time is below 1000ms', function () { pm.expect(pm.response.responseTime).to.be.below(1000); });",
-                  "pm.test('Health endpoint is reachable', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.models).to.be.an('array');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /vision/face-match (deprecated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vision/face-match",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vision",
+                "face-match"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Sunset header is present', function () { pm.expect(pm.response.headers.has('Sunset')).to.be.true; });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.status).to.eql('SUCCESS');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03_Access",
+      "item": [
+        {
+          "name": "GET /access/logs/recent",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "access",
+                "logs",
+                "recent"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.items).to.be.an('array');",
+                  "if (json.items.length > 0) { pm.environment.set('accessLogId', json.items[0].logId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /access/logs/{{accessLogId}}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/{{accessLogId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "access",
+                "logs",
+                "{{accessLogId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.logId).to.eql(pm.environment.get('accessLogId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /gates/GATE-01/status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gates/GATE-01/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gates",
+                "GATE-01",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.gateId).to.eql('GATE-01');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /cards/CARD-123456",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cards/CARD-123456",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cards",
+                "CARD-123456"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.cardId).to.eql('CARD-123456');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /access/check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "access",
+                "check"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"0196fb3d-4ad7-7d1e-9f49-5d5148d2cafe\",\n  \"cardId\": \"CARD-123456\",\n  \"gateId\": \"GATE-01\",\n  \"direction\": \"IN\",\n  \"timestamp\": \"2026-06-01T10:00:00Z\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.allow).to.be.true;",
+                  "if (json.decisionId) { pm.environment.set('decisionId', json.decisionId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /policies/access/POL-101",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/policies/access/POL-101",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "access",
+                "POL-101"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.policyId).to.eql('POL-101');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /decisions/{{decisionId}}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/decisions/{{decisionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "decisions",
+                "{{decisionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.decisionId).to.eql(pm.environment.get('decisionId'));"
                 ]
               }
             }

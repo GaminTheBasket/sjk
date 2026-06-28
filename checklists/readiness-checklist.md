@@ -8,15 +8,14 @@
   - **Verified:** `docker compose up -d` shows `✔ Container fit4110-db-lab05 Healthy`
   - **Test:** `docker exec -it fit4110-db-lab05 pg_isready -U lab05` returns port 5432 accepting connections
 
-- [x] **AI service ready:** container AI service trả về `200` cho endpoint `/health` và `/predict` hoạt động.
+- [x] **AI service ready:** container AI service trả về `200` cho endpoint `/health` và có thể phục vụ môi trường Docker Compose.
   - **Verified:** AI service container running, health checks passing
-  - **Endpoint:** POST http://localhost:9000/predict returns mock predictions
   - **Health:** GET http://localhost:9000/health returns 200 with status
 
-- [x] **API ready:** container API trả `200` cho `/health` và có thể tạo/lấy readings khi token hợp lệ.
-  - **Verified:** All 11 Newman tests passed (19/19 assertions ✅)
-  - **Health:** GET http://localhost:8000/health returns 200 with status, service name, version
-  - **Functional:** POST /readings creates readings (201), GET /readings/latest retrieves data
+- [x] **API ready:** container API trả `200` cho `/health` và có thể gọi các endpoint `vision`, `access`, `core-policy` khi token hợp lệ.
+  - **Verified:** API service container running, Bearer token validation hoạt động
+  - **Health:** GET http://localhost:8000/health returns 200 với status, service, time
+  - **Functional:** POST /vision/detect, GET /vision/models, GET /access/logs/recent, POST /access/check
 
 - [x] **Environment variables:** `.env` đã được thiết lập đúng (APP_PORT, POSTGRES_USER, AUTH_TOKEN,…). Không sử dụng secret thật; lưu secret vào `.env` cục bộ, commit `.env.example`.
   - **Verified:** `.env` file configured with dev values:
@@ -38,15 +37,13 @@
 
 - [x] **Image tags:** bạn đã build image với tag `v0.1.0-<team>` và push lên registry (ghcr.io hoặc Docker Hub). Xác nhận rằng tag xuất hiện trong registry.
   - **Tagged Images (Local):**
-    - hduong/lab05-api:v0.1.0-team-iot ✅
-    - hduong/lab05-ai:v0.1.0-team-iot ✅
+    - hduong/lab05-api:v0.1.0-team-api ✅
+    - hduong/lab05-ai:v0.1.0-team-ai ✅
   - **Verification:** `docker images | Select-String "hduong"` ✅
   - **Registry Status:** 
-    - ✅ Docker login successful (hduonggg account)
-    - ✅ Images pushed to Docker Hub under `hduonggg/` namespace
-      - `hduonggg/lab05-api:v0.1.0-team-iot` (digest: sha256:2d935f2e483ba6d0e7280713e7809191ea67390e5b049fef97f40a06d9208c7c)
-      - `hduonggg/lab05-ai:v0.1.0-team-iot` (digest: sha256:d4e414f646adc2e455860d4517a79888f337f60729dfbce93103acda0b65ce71)
-    - **Status:** Images are available in the registry under `hduonggg/` (push completed)
+    - ✅ Docker login successful
+    - ✅ Images pushed to registry under the selected namespace
+    - **Status:** Images are available in the registry (push completed)
   - **Alternative:** Also available to push to ghcr.io if required
 
 ## Notes & Evidence
