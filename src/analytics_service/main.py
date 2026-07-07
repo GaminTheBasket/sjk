@@ -24,6 +24,8 @@ APP_PORT = int(os.getenv("ANALYTICS_PORT", "8010"))
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "mqtt-broker")
 MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 CORE_BUSINESS_URL = os.getenv("CORE_BUSINESS_URL", "http://core-business:8020/analytics/metrics")
+CORE_BUSINESS_NOTIFY_URL = os.getenv("CORE_BUSINESS_NOTIFY_URL", "http://core-business:8020/notify/dashboard")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8080")
 CORE_PUSH_INTERVAL_SECONDS = int(os.getenv("CORE_PUSH_INTERVAL_SECONDS", "60"))
 AUTH_TOKEN = os.getenv("AUTH_TOKEN", "local-dev-token")
 
@@ -336,6 +338,8 @@ def push_metrics_to_core(metrics: MetricsResponse) -> Dict[str, Any]:
         with urllib.request.urlopen(request, timeout=5) as response:
             body = response.read().decode("utf-8", errors="replace")
             logger.info("Pushed metrics for date=%s to core business, status=%s", metrics.date, response.status)
+            # Gửi notification dashboard link tới Core Business
+            send_dashboard_notification_to_core()
             return {"success": True, "status": response.status, "response": body}
     except urllib.error.HTTPError as http_err:
         logger.warning("Failed to push metrics to core business, HTTP %s: %s", http_err.code, http_err.reason)
@@ -343,6 +347,37 @@ def push_metrics_to_core(metrics: MetricsResponse) -> Dict[str, Any]:
     except Exception as exc:
         logger.warning("Failed to push metrics to core business: %s", exc)
         return {"success": False, "error": str(exc)}
+
+
+def send_dashboard_notification_to_core() -> bool:
+    """Gửi notification link dashboard tới Core Business service"""
+    if not CORE_BUSINESS_NOTIFY_URL:
+        logger.debug("CORE_BUSINESS_NOTIFY_URL not configured, skipping notification")
+        return False
+
+    notification_payload = {
+        "dashboard_url": DASHBOARD_URL,
+        "message": f"Dashboard updated with latest metrics from Analytics Service at {datetime.now(timezone.utc).isoformat()}"
+    }
+
+    data = json.dumps(notification_payload).encode("utf-8")
+    request = urllib.request.Request(
+        CORE_BUSINESS_NOTIFY_URL,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            logger.info("Sent dashboard notification to %s, status=%s", CORE_BUSINESS_NOTIFY_URL, response.status)
+            return True
+    except urllib.error.HTTPError as http_err:
+        logger.warning("Failed to send dashboard notification, HTTP %s: %s", http_err.code, http_err.reason)
+        return False
+    except Exception as exc:
+        logger.warning("Failed to send dashboard notification: %s", exc)
+        return False
 
 
 def core_push_worker() -> None:

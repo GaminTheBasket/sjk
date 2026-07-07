@@ -1,0 +1,74 @@
++---------------------------+
+                |      External Users       |
+                |  (Browser / Teams / UI)   |
+                +------------+--------------+
+                             |
+                             v
+                       +-----------+
+                       | dashboard |
+                       +-----+-----+
+                             |
+                             v
+                    +-------------------+
+                    |  core-business    |
+                    |  (FastAPI service)|
+                    +---+-----------+---+
+                        |           |
+          REST /metrics |           | REST /health, dashboard API
+                        |           |
+                        v           v
+                  +-----------+   +------+
+                  | analytics |   | api  |
+                  | (FastAPI) |   +------+
+                  +-----+-----+
+                        |
+      MQTT subscribe     |
+  smart-campus/events/* |
+                        v
+                 +----------------+
+                 | mqtt-broker    |
+                 | (Mosquitto)    |
+                 +--------+-------+
+                          ^
+                          |
+             +------------+-------------+
+             |                          |
+ +----------------------+      +----------------------+
+ | IoT devices / sensors|      | External alert source|
+ +----------------------+      +----------------------+
+
+
+
+
+ 
++----------------------+
+                    |   Nhóm Core Business |
+                    |   (Core BusinessAPI) |
+                    +----------+-----------+
+                               |
+                      REST /analytics/metrics
+                               |
+                    +----------v-----------+
+                    |     Analytics        |
+                    |    Service (FastAPI) |
+                    +----+------+----------+
+                         |      |
+     MQTT subscribe      |      | REST push metrics
+ smart-campus/events/*   |      v
+                         |  +------------------+-
+                         |  | Core Business    |
+                         |  | Service (8020)   |
+                         |  +------------------+-
+                         |
+              +----------v----------+
+              |    MQTT Broker      |
+              |  (26.79.10.201:1883) |
+              +----------+----------+
+                         |
+         +---------------+----------------+
+         |                                |
+ +-------v------+                 +-------v-------+
+ | IoT devices  |                 | External alert|
+ | / sensor /   |                 | publisher     |
+ | access gate  |                 +---------------+
+ +--------------+
