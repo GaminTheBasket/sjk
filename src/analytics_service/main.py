@@ -6,6 +6,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, date, timezone
 from typing import Any, Dict, List, Optional
@@ -27,8 +28,8 @@ MQTT_BROKER_HOST = os.getenv("MQTT_BROKER") or os.getenv("MQTT_BROKER_HOST", "mq
 MQTT_BROKER_PORT = int(os.getenv("MQTT_PORT") or os.getenv("MQTT_BROKER_PORT", "1883"))
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
-CORE_BUSINESS_URL = os.getenv("CORE_BUSINESS_URL", "http://core-business:8020/analytics/metrics")
-CORE_BUSINESS_NOTIFY_URL = os.getenv("CORE_BUSINESS_NOTIFY_URL", "http://core-business:8020/notify/dashboard")
+CORE_BUSINESS_URL = os.getenv("CORE_BUSINESS_URL", "http://26.98.49.132:8020/analytics/metrics")
+CORE_BUSINESS_NOTIFY_URL = os.getenv("CORE_BUSINESS_NOTIFY_URL", "http://26.98.49.132:8020/notify/dashboard")
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8080")
 CORE_PUSH_INTERVAL_SECONDS = int(os.getenv("CORE_PUSH_INTERVAL_SECONDS", "60"))
 AUTH_TOKEN = os.getenv("AUTH_TOKEN", "local-dev-token")
@@ -111,9 +112,29 @@ def increment_source_count(topic: str, payload: Dict[str, Any]) -> None:
         EVENT_SOURCE_COUNTS[bucket][source] += 1
 
 
+def normalize_label(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    text = str(value).strip()
+    if not text:
+        return "unknown"
+    return re.sub(r"\s+", " ", text).title()
+
+
+def normalize_area(value: Any) -> str:
+    if value is None:
+        return "Unknown"
+    text = str(value).strip()
+    if not text:
+        return "Unknown"
+    normalized = re.sub(r"[ _-]+", " ", text)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.title()
+
+
 def update_sensor_stats(payload: Dict[str, Any]) -> None:
-    room = payload.get("location") or payload.get("room") or payload.get("locationId") or payload.get("area")
-    if not room:
+    room = normalize_label(payload.get("location") or payload.get("room") or payload.get("locationId") or payload.get("area"))
+    if room == "Unknown":
         return
 
     temp = payload.get("temperature_c") if payload.get("temperature_c") is not None else payload.get("temperature")
@@ -145,6 +166,8 @@ def update_sensor_stats(payload: Dict[str, Any]) -> None:
                 SEVERITY_COUNTS[bucket]["danger"] += 1
             elif status_key in {"warning", "caution"}:
                 SEVERITY_COUNTS[bucket]["warning"] += 1
+            else:
+                SEVERITY_COUNTS[bucket][status_key] += 1
 
 
 def update_alert_stats(topic: str, payload: Dict[str, Any]) -> None:
@@ -152,7 +175,7 @@ def update_alert_stats(topic: str, payload: Dict[str, Any]) -> None:
     severity_key = str(severity).lower()
     timestamp = parse_iso_ts(payload.get("timestamp")) or now_utc()
     bucket = bucket_date(timestamp)
-    area = payload.get("area") or payload.get("room") or payload.get("locationId") or "unknown"
+    area = normalize_area(payload.get("area") or payload.get("room") or payload.get("locationId") or "unknown")
     device_id = payload.get("device") or payload.get("deviceId")
 
     with LOCK:
@@ -180,7 +203,7 @@ def update_policy_stats(payload: Dict[str, Any]) -> None:
     severity_key = str(severity).lower()
     timestamp = parse_iso_ts(payload.get("timestamp")) or now_utc()
     bucket = bucket_date(timestamp)
-    area = payload.get("target") or payload.get("target_team") or "unknown"
+    area = normalize_area(payload.get("target") or payload.get("target_team") or "unknown")
 
     with LOCK:
         if severity_key in {"danger", "critical"}:
@@ -207,7 +230,7 @@ def update_access_stats(payload: Dict[str, Any]) -> None:
             ACCESS_COUNTS[bucket]["denied_access_count"] += 1
         ACCESS_HOUR_COUNTS[bucket][hour_bucket] += 1
 
-        area = payload.get("location") or payload.get("area") or payload.get("locationId") or payload.get("gateId") or payload.get("door_id") or "unknown"
+        area = normalize_area(payload.get("location") or payload.get("area") or payload.get("locationId") or payload.get("gateId") or payload.get("door_id") or "unknown")
         AREA_EVENT_COUNTS[bucket][area] += 1
 
 

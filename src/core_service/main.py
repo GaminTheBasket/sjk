@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 SERVICE_NAME = os.getenv("SERVICE_NAME", "core-business")
 SERVICE_VERSION = os.getenv("SERVICE_VERSION", "1.0.0")
 APP_PORT = int(os.getenv("CORE_BUSINESS_PORT", "8020"))
+ACCESS_LOG_SERVICE_URL = os.getenv("ACCESS_LOG_SERVICE_URL", "http://api:8000/access/logs/recent")
+ACCESS_LOG_AUTH_TOKEN = os.getenv("ACCESS_LOG_AUTH_TOKEN", "local-dev-token")
 
 app = FastAPI(
     title="FIT4110 Lab 05 - Core Business Service",
@@ -137,7 +139,29 @@ def dashboard_view() -> HTMLResponse:
 
 @app.get("/collections/access_logs_recent.json")
 def access_logs_recent() -> JSONResponse:
-    return JSONResponse(content=json.loads(COLLECTIONS_FILE.read_text(encoding="utf-8")))
+    request = urllib.request.Request(
+        ACCESS_LOG_SERVICE_URL,
+        headers={"Authorization": f"Bearer {ACCESS_LOG_AUTH_TOKEN}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            body = response.read().decode("utf-8")
+            return JSONResponse(content=json.loads(body))
+    except urllib.error.HTTPError as http_err:
+        logger.warning("Failed to fetch live access logs, HTTP %s: %s", http_err.code, http_err.reason)
+        try:
+            content = json.loads(COLLECTIONS_FILE.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            content = {"items": []}
+        return JSONResponse(content=content)
+    except Exception as exc:
+        logger.warning("Failed to fetch live access logs: %s", exc)
+        try:
+            content = json.loads(COLLECTIONS_FILE.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            content = {"items": []}
+        return JSONResponse(content=content)
 
 
 @app.post("/notify/dashboard", response_model=DashboardNotification)

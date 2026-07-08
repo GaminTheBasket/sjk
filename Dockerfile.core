@@ -30,6 +30,7 @@ RUN addgroup --system appgroup \
 
 COPY --from=builder /opt/venv /opt/venv
 COPY src/core_service ./src/core_service
+COPY collections ./collections
 
 RUN chown -R appuser:appgroup /app
 USER appuser

@@ -6,7 +6,7 @@ const logList = document.getElementById('log-list');
 const updatedAt = document.getElementById('updated-at');
 const refreshButton = document.getElementById('refresh-button');
 
-const apiBase = 'http://localhost:8020';
+const apiBase = `${window.location.protocol}//${window.location.hostname}:8020`;
 
 function formatNumber(value) {
   return new Intl.NumberFormat('vi-VN').format(value);
@@ -179,7 +179,7 @@ async function loadDashboard() {
   }
 
   try {
-    accessLogs = await fetchJson('/collections/access_logs_recent.json');
+    accessLogs = await fetchJson(`${apiBase}/collections/access_logs_recent.json`);
   } catch (error) {
     console.error('Access logs fetch failed', error);
   }
@@ -225,3 +225,13 @@ async function loadDashboard() {
 
 refreshButton.addEventListener('click', loadDashboard);
 loadDashboard();
+
+const REFRESH_INTERVAL = 5000;
+
+setInterval(async () => {
+    try {
+        await loadDashboard();
+    } catch (err) {
+        console.error(err);
+    }
+}, REFRESH_INTERVAL);
