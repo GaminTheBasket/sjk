@@ -41,4 +41,4 @@ EXPOSE 8010
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).read()" || exit 1
 
-CMD ["sh", "-c", "uvicorn analytics_service.main:app --app-dir src --host 0.0.0.0 --port ${ANALYTICS_PORT}"]
+CMD ["sh", "-c", "PYTHONPATH=/app/src uvicorn analytics_service.main:app --host 0.0.0.0 --port ${ANALYTICS_PORT}"]

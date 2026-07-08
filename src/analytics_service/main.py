@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import ssl
 import threading
 import time
 import urllib.error
@@ -9,6 +10,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, date, timezone
 from typing import Any, Dict, List, Optional
 
+import certifi
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as mqtt_publish
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
@@ -21,8 +23,10 @@ logger = logging.getLogger(__name__)
 SERVICE_NAME = os.getenv("SERVICE_NAME", "analytics-service")
 SERVICE_VERSION = os.getenv("SERVICE_VERSION", "1.0.0")
 APP_PORT = int(os.getenv("ANALYTICS_PORT", "8010"))
-MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "mqtt-broker")
-MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
+MQTT_BROKER_HOST = os.getenv("MQTT_BROKER") or os.getenv("MQTT_BROKER_HOST", "mqtt-broker")
+MQTT_BROKER_PORT = int(os.getenv("MQTT_PORT") or os.getenv("MQTT_BROKER_PORT", "1883"))
+MQTT_USERNAME = os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 CORE_BUSINESS_URL = os.getenv("CORE_BUSINESS_URL", "http://core-business:8020/analytics/metrics")
 CORE_BUSINESS_NOTIFY_URL = os.getenv("CORE_BUSINESS_NOTIFY_URL", "http://core-business:8020/notify/dashboard")
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8080")
@@ -108,12 +112,12 @@ def increment_source_count(topic: str, payload: Dict[str, Any]) -> None:
 
 
 def update_sensor_stats(payload: Dict[str, Any]) -> None:
-    room = payload.get("room") or payload.get("locationId") or payload.get("area")
+    room = payload.get("location") or payload.get("room") or payload.get("locationId") or payload.get("area")
     if not room:
         return
 
-    temp = payload.get("temperature")
-    humidity = payload.get("humidity")
+    temp = payload.get("temperature_c") if payload.get("temperature_c") is not None else payload.get("temperature")
+    humidity = payload.get("humidity_percent") if payload.get("humidity_percent") is not None else payload.get("humidity")
     timestamp = parse_iso_ts(payload.get("timestamp")) or now_utc()
     bucket = bucket_date(timestamp)
 
@@ -125,6 +129,22 @@ def update_sensor_stats(payload: Dict[str, Any]) -> None:
         if isinstance(humidity, (int, float)):
             stats["humidity_sum"] += float(humidity)
             stats["humidity_count"] += 1
+
+    device_id = payload.get("device_id") or payload.get("device") or payload.get("deviceId")
+    battery = payload.get("battery_percent") if payload.get("battery_percent") is not None else payload.get("battery")
+    if device_id and isinstance(battery, (int, float)):
+        if battery < 20:
+            with LOCK:
+                LOW_BATTERY_DEVICES.add(str(device_id))
+
+    status_val = payload.get("status")
+    if status_val:
+        status_key = str(status_val).lower()
+        with LOCK:
+            if status_key in {"danger", "critical"}:
+                SEVERITY_COUNTS[bucket]["danger"] += 1
+            elif status_key in {"warning", "caution"}:
+                SEVERITY_COUNTS[bucket]["warning"] += 1
 
 
 def update_alert_stats(topic: str, payload: Dict[str, Any]) -> None:
@@ -175,7 +195,7 @@ def update_policy_stats(payload: Dict[str, Any]) -> None:
 
 def update_access_stats(payload: Dict[str, Any]) -> None:
     direction = str(payload.get("direction", "")).upper()
-    status_text = str(payload.get("status", "")).upper()
+    status_text = str(payload.get("access_result") or payload.get("status") or "").upper()
     timestamp = parse_iso_ts(payload.get("timestamp")) or now_utc()
     bucket = bucket_date(timestamp)
     hour_bucket = timestamp.strftime("%H:00-%H:59")
@@ -183,11 +203,11 @@ def update_access_stats(payload: Dict[str, Any]) -> None:
     with LOCK:
         if direction == "IN":
             ACCESS_COUNTS[bucket]["total_access_in"] += 1
-        if status_text == "DENIED" or status_text == "BLOCKED":
+        if status_text in {"DENIED", "BLOCKED"}:
             ACCESS_COUNTS[bucket]["denied_access_count"] += 1
         ACCESS_HOUR_COUNTS[bucket][hour_bucket] += 1
 
-        area = payload.get("area") or payload.get("locationId") or payload.get("gateId") or "unknown"
+        area = payload.get("location") or payload.get("area") or payload.get("locationId") or payload.get("gateId") or payload.get("door_id") or "unknown"
         AREA_EVENT_COUNTS[bucket][area] += 1
 
 
@@ -238,6 +258,21 @@ def start_mqtt_client() -> mqtt.Client:
     client.on_connect = mqtt_on_connect
     client.on_message = mqtt_on_message
     client.reconnect_delay_set(min_delay=2, max_delay=30)
+    
+    if MQTT_USERNAME and MQTT_PASSWORD:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+        logger.info("MQTT username/password configured")
+    
+    if MQTT_BROKER_PORT == 8883:
+        try:
+            import certifi
+            ca_certs = certifi.where()
+        except ImportError:
+            ca_certs = None
+        
+        client.tls_set(ca_certs=ca_certs)
+        logger.info("MQTT TLS enabled using port 8883")
+        
     client.connect_async(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=60)
     client.loop_start()
     return client
@@ -245,14 +280,35 @@ def start_mqtt_client() -> mqtt.Client:
 
 def publish_demo_events() -> None:
     demo_events = [
-        ("smart-campus/events/sensor", {"timestamp": now_utc().isoformat(), "room": "lab-a101", "temperature": 27.3, "humidity": 61}),
-        ("smart-campus/events/access", {"timestamp": now_utc().isoformat(), "gateId": "gate-a", "direction": "IN", "status": "ALLOWED", "area": "gate-a"}),
+        ("smart-campus/events/sensor", {"timestamp": now_utc().isoformat(), "location": "Lab A101", "temperature_c": 27.3, "humidity_percent": 61, "battery_percent": 90, "status": "normal"}),
+        ("smart-campus/events/access", {"timestamp": now_utc().isoformat(), "location": "Main Gate A", "direction": "in", "access_result": "granted"}),
         ("smart-campus/events/camera", {"timestamp": now_utc().isoformat(), "area": "lab-a101", "severity": "warning", "device": "camera-01"}),
         ("smart-campus/events/alerts", {"timestamp": now_utc().isoformat(), "severity": "danger", "area": "lab-a101", "device": "sensor-05", "battery": 12}),
     ]
+    
+    auth = None
+    if MQTT_USERNAME and MQTT_PASSWORD:
+        auth = {"username": MQTT_USERNAME, "password": MQTT_PASSWORD}
+
+    tls = None
+    if MQTT_BROKER_PORT == 8883:
+        try:
+            import certifi
+            ca_certs = certifi.where()
+        except ImportError:
+            ca_certs = None
+        tls = {"ca_certs": ca_certs}
+
     for topic, payload in demo_events:
         try:
-            mqtt_publish.single(topic, payload=json.dumps(payload), hostname=MQTT_BROKER_HOST, port=MQTT_BROKER_PORT)
+            mqtt_publish.single(
+                topic,
+                payload=json.dumps(payload),
+                hostname=MQTT_BROKER_HOST,
+                port=MQTT_BROKER_PORT,
+                auth=auth,
+                tls=tls
+            )
             logger.info("Published demo event to %s", topic)
         except Exception as exc:
             logger.warning("Could not publish demo MQTT event to %s: %s", topic, exc)
